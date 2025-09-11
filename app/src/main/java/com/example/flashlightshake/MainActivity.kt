@@ -2,9 +2,11 @@ package com.example.flashlightshake
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -20,8 +22,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var startButton: Button
     private lateinit var stopButton: Button
+    private lateinit var testButton: Button
 
     private var isServiceRunning = false
+    private var isFlashlightOn = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +36,7 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         startButton = findViewById(R.id.startButton)
         stopButton = findViewById(R.id.stopButton)
+        testButton = findViewById(R.id.testButton)
 
         cameraManager = getSystemService(CameraManager::class.java)
 
@@ -67,6 +72,48 @@ class MainActivity : AppCompatActivity() {
             stopFlashlightService()
             updateUI(false)
         }
+
+        testButton.setOnClickListener {
+            if (checkCameraPermission()) {
+                toggleTestFlashlight()
+            }
+        }
+    }
+
+    private fun toggleTestFlashlight() {
+        try {
+            val cameraId = getCameraId()
+            if (cameraId != null) {
+                cameraManager.setTorchMode(cameraId, !isFlashlightOn)
+                isFlashlightOn = !isFlashlightOn
+
+                if (isFlashlightOn) {
+                    flashlightIcon.setImageResource(R.drawable.ic_flashlight_on)
+                    showToast("Фонарик включен")
+                } else {
+                    flashlightIcon.setImageResource(R.drawable.ic_flashlight_off)
+                    showToast("Фонарик выключен")
+                }
+            }
+        } catch (e: Exception) {
+            showToast("Ошибка доступа к камере")
+        }
+    }
+
+    private fun getCameraId(): String? {
+        try {
+            for (cameraId in cameraManager.cameraIdList) {
+                val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+                val hasFlash = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)
+                val lensFacing = characteristics.get(CameraCharacteristics.LENS_FACING)
+                if (hasFlash != null && hasFlash && lensFacing == CameraCharacteristics.LENS_FACING_BACK) {
+                    return cameraId
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Camera ID error")
+        }
+        return null
     }
 
     private fun startFlashlightService() {
@@ -88,8 +135,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkServiceStatus() {
-        // Простая проверка статуса сервиса
-        // В реальном приложении можно использовать BroadcastReceiver для точного определения статуса
         updateUI(isServiceRunning)
     }
 
@@ -98,16 +143,19 @@ class MainActivity : AppCompatActivity() {
             statusText.text = "Сервис активен"
             startButton.isEnabled = false
             stopButton.isEnabled = true
+            testButton.isEnabled = false
         } else {
             statusText.text = "Сервис остановлен"
             startButton.isEnabled = true
             stopButton.isEnabled = false
+            testButton.isEnabled = true
         }
     }
 
     private fun disableButtons() {
         startButton.isEnabled = false
         stopButton.isEnabled = false
+        testButton.isEnabled = false
     }
 
     private fun checkCameraPermission(): Boolean {

@@ -12,7 +12,7 @@
         android:layout_width="120dp"
         android:layout_height="120dp"
         android:src="@drawable/ic_flashlight_off"
-        android:layout_marginBottom="32dp"/>
+        android:layout_marginBottom="24dp"/>
 
     <TextView
         android:id="@+id/statusText"
@@ -21,21 +21,29 @@
         android:text="Готов к работе"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:layout_marginBottom="32dp"/>
+        android:layout_marginBottom="24dp"/>
+
+    <Button
+        android:id="@+id/testButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Проверить фонарик"
+        android:layout_marginBottom="16dp"
+        style="@style/Widget.AppCompat.Button.Colored"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="24dp">
 
         <Button
             android:id="@+id/startButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Запустить"
+            android:text="Запустить сервис"
             android:layout_marginEnd="8dp"
             style="@style/Widget.AppCompat.Button.Colored"/>
 
@@ -44,7 +52,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Остановить"
+            android:text="Остановить сервис"
             android:layout_marginStart="8dp"
             android:enabled="false"
             style="@style/Widget.AppCompat.Button.Colored"/>
