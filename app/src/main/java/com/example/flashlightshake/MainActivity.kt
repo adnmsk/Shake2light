@@ -9,15 +9,8 @@ import android.hardware.SensorManager
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.os.VibrationEffect
-import android.os.Vibrator
+import android.os.*
 import android.util.Log
-import android.view.View
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -32,27 +25,25 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var cameraManager: CameraManager
     private lateinit var vibrator: Vibrator
     private lateinit var handler: Handler
+    private lateinit var wakeLock: PowerManager.WakeLock
 
     private lateinit var flashlightIcon: ImageView
     private lateinit var statusText: TextView
-    private lateinit var debugText: TextView
-    private lateinit var testButton: Button
 
     private var isFlashlightOn = false
-    private var canToggle = true // Флаг, разрешающий переключение
+    private var canToggle = true
 
     // Параметры для детектирования двойного встряхивания
-    private val SHAKE_THRESHOLD = 10000f // Минимальная сила одного встряхивания
-    private val DOUBLE_SHAKE_TIMEOUT = 250L // Максимальное время между двумя встряхиваниями (мс)
-    private val MIN_SHAKE_INTERVAL = 100L // Минимальное время между встряхиваниями (мс)
-    private val TOGGLE_COOLDOWN = 500L // Задержка между переключениями (мс)
+    private val SHAKE_THRESHOLD = 10000f
+    private val DOUBLE_SHAKE_TIMEOUT = 250L
+    private val MIN_SHAKE_INTERVAL = 100L
+    private val TOGGLE_COOLDOWN = 500L
 
     private var lastShakeTime: Long = 0
     private var firstShakeTime: Long = 0
     private var shakeCount = 0
     private var lastShakeStrength = 0f
 
-    // Координаты для акселерометра
     private var lastX = 0f
     private var lastY = 0f
     private var lastZ = 0f
@@ -75,8 +66,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         flashlightIcon = findViewById(R.id.flashlightIcon)
         statusText = findViewById(R.id.statusText)
-        debugText = findViewById(R.id.debugText)
-        testButton = findViewById(R.id.testButton)
 
         // Инициализация менеджеров
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -84,9 +73,16 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         handler = Handler(Looper.getMainLooper())
 
+        // WakeLock для работы в фоне
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "FlashlightShake::WakeLock"
+        )
+
         // Проверка наличия фонарика
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
-            Toast.makeText(this, "Устройство не поддерживает фонарик", Toast.LENGTH_LONG).show()
+            showToast("Устройство не поддерживает фонарик")
             statusText.text = "Нет фонарика!"
             finish()
             return
@@ -100,32 +96,51 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
 
         // Получение акселерометра
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)!!
-        if (accelerometer == null) {
-            Toast.makeText(this, "Акселерометр не доступен", Toast.LENGTH_LONG).show()
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) ?: run {
+            showToast("Акселерометр не доступен")
             statusText.text = "Нет акселерометра!"
             finish()
             return
         }
 
-        statusText.text = "Сделайте два быстрых встряхивания!"
+        statusText.text = "Готов к работе"
         lastUpdateTime = System.currentTimeMillis()
     }
 
     override fun onResume() {
         super.onResume()
+        // Захватываем WakeLock для работы в фоне
+        if (!wakeLock.isHeld) {
+            wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
+        }
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
-        Log.d(TAG, "Слушатель акселерометра запущен")
     }
 
     override fun onPause() {
         super.onPause()
+        // Не останавливаем слушатель полностью, чтобы работало в фоне
+        // Освобождаем WakeLock только если приложение полностью закрыто
+        if (isFinishing) {
+            sensorManager.unregisterListener(this)
+            if (wakeLock.isHeld) {
+                wakeLock.release()
+            }
+            if (isFlashlightOn) {
+                toggleFlashlight()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         sensorManager.unregisterListener(this)
+        handler.removeCallbacksAndMessages(null)
+        if (wakeLock.isHeld) {
+            wakeLock.release()
+        }
         if (isFlashlightOn) {
             toggleFlashlight()
         }
-        // Удаляем все pending callbacks при паузе
-        handler.removeCallbacksAndMessages(null)
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -136,9 +151,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // Не используется
-    }
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     private fun detectDoubleShake(event: SensorEvent) {
         val currentTime = System.currentTimeMillis()
@@ -153,72 +166,37 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         val deltaY = y - lastY
         val deltaZ = z - lastZ
 
-        // Расчет силы встряхивания
         val currentShakeStrength = (Math.abs(deltaX) + Math.abs(deltaY) + Math.abs(deltaZ)) / deltaTime * 10000
 
-        // Отладочная информация
-        runOnUiThread {
-            val cooldownText = if (!canToggle) " (ждем ${TOGGLE_COOLDOWN}мс)" else ""
-            debugText.text = String.format("Сила: %.1f\nВстряхивания: %d/2%s", currentShakeStrength, shakeCount, cooldownText)
-        }
-
-        // Проверяем, можно ли сейчас переключать
         if (!canToggle) {
             return
         }
 
-        // Проверка на достаточную силу встряхивания
         if (currentShakeStrength > SHAKE_THRESHOLD && currentTime - lastShakeTime > MIN_SHAKE_INTERVAL) {
 
-            // Проверяем, не слишком ли давно было первое встряхивание
             if (shakeCount == 0 || currentTime - firstShakeTime > DOUBLE_SHAKE_TIMEOUT) {
-                // Начинаем новую серию
                 shakeCount = 1
                 firstShakeTime = currentTime
                 lastShakeStrength = currentShakeStrength
-                Log.d(TAG, "Первое встряхивание: сила $currentShakeStrength")
-
-                runOnUiThread {
-                    statusText.text = "Еще одно встряхивание!"
-                }
 
             } else {
-                // Второе встряхивание в пределах времени
                 val strengthDifference = Math.abs(currentShakeStrength - lastShakeStrength) / lastShakeStrength
 
-                // Проверяем, что второе встряхивание похоже по силе (в пределах 50%)
                 if (strengthDifference < 0.5f) {
                     shakeCount++
-                    Log.d(TAG, "Второе встряхивание: сила $currentShakeStrength, разница: ${String.format("%.1f", strengthDifference * 100)}%")
 
                     if (shakeCount >= 2) {
-                        // Двойное встряхивание обнаружено!
-                        Log.d(TAG, "ДВОЙНОЕ ВСТРЯХИВАНИЕ ОБНАРУЖЕНО!")
-
-                        // Запрещаем дальнейшие переключения на время cooldown
                         canToggle = false
+                        toggleFlashlight()
+                        vibrate()
 
-                        runOnUiThread {
-                            toggleFlashlight()
-                            vibrate()
-                            statusText.text = if (isFlashlightOn) "ВКЛЮЧЕНО! ✓" else "ВЫКЛЮЧЕНО! ✗"
-                        }
-
-                        // Включаем таймер для разрешения следующего переключения
                         handler.postDelayed({
                             canToggle = true
-                            Log.d(TAG, "Cooldown завершен, можно переключать снова")
-                            runOnUiThread {
-                                statusText.text = if (isFlashlightOn) "ВКЛЮЧЕНО" else "ВЫКЛЮЧЕНО"
-                            }
                         }, TOGGLE_COOLDOWN)
 
-                        // Сбрасываем счетчик встряхиваний
                         shakeCount = 0
                     }
                 } else {
-                    Log.d(TAG, "Второе встряхивание слишком отличается: ${String.format("%.1f", strengthDifference * 100)}%")
-                    // Сбрасываем, так как встряхивания не похожи
                     shakeCount = 0
                 }
             }
@@ -226,13 +204,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             lastShakeTime = currentTime
         }
 
-        // Сбрасываем счетчик, если прошло слишком много времени
         if (shakeCount > 0 && currentTime - firstShakeTime > DOUBLE_SHAKE_TIMEOUT) {
-            Log.d(TAG, "Таймаут двойного встряхивания")
             shakeCount = 0
-            runOnUiThread {
-                statusText.text = "Слишком медленно! Попробуйте быстрее"
-            }
         }
 
         lastX = x
@@ -250,10 +223,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 updateUI()
             }
         } catch (e: CameraAccessException) {
-            Log.e(TAG, "Ошибка доступа к камере: ${e.message}")
-            runOnUiThread {
-                statusText.text = "Ошибка доступа!"
-            }
+            Log.e(TAG, "Ошибка доступа к камере")
         }
     }
 
@@ -270,7 +240,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 }
             }
         } catch (e: CameraAccessException) {
-            Log.e(TAG, "Ошибка получения ID камеры: ${e.message}")
+            Log.e(TAG, "Ошибка получения ID камеры")
         }
         return null
     }
@@ -279,8 +249,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         runOnUiThread {
             if (isFlashlightOn) {
                 flashlightIcon.setImageResource(R.drawable.ic_flashlight_on)
+                statusText.text = "ВКЛЮЧЕНО"
             } else {
                 flashlightIcon.setImageResource(R.drawable.ic_flashlight_off)
+                statusText.text = "ВЫКЛЮЧЕНО"
             }
         }
     }
@@ -294,30 +266,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                     vibrator.vibrate(100)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Ошибка вибрации: ${e.message}")
+                Log.e(TAG, "Ошибка вибрации")
             }
         }
     }
 
-    // Функция для тестовой кнопки
-    fun onTestButtonClick(view: View) {
-        if (!canToggle) {
-            Toast.makeText(this, "Подождите ${TOGGLE_COOLDOWN}мс", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        canToggle = false
-        toggleFlashlight()
-        vibrate()
+    private fun showToast(message: String) {
         runOnUiThread {
-            statusText.text = if (isFlashlightOn) "ТЕСТ: ВКЛЮЧЕНО" else "ТЕСТ: ВЫКЛЮЧЕНО"
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
         }
-
-        // Включаем таймер для разрешения следующего переключения
-        handler.postDelayed({
-            canToggle = true
-            Log.d(TAG, "Cooldown завершен, можно переключать снова")
-        }, TOGGLE_COOLDOWN)
     }
 
     override fun onRequestPermissionsResult(
@@ -328,7 +285,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1) {
             if (grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Разрешение на камеру необходимо", Toast.LENGTH_LONG).show()
+                showToast("Разрешение на камеру необходимо")
                 statusText.text = "Нет разрешения!"
                 finish()
             }
