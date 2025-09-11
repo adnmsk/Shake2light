@@ -46,6 +46,7 @@ class FlashlightService : Service(), SensorEventListener {
         private const val TAG = "FlashlightService"
         private const val CHANNEL_ID = "Shake2LightChannel"
         private const val NOTIFICATION_ID = 1
+        const val ACTION_STOP_SERVICE = "STOP_SERVICE"
     }
 
     override fun onCreate() {
@@ -64,6 +65,12 @@ class FlashlightService : Service(), SensorEventListener {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "Service started")
+
+        // Проверяем, не пришла ли команда остановки
+        if (intent?.action == ACTION_STOP_SERVICE) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         // Создаем канал уведомлений
         createNotificationChannel()
