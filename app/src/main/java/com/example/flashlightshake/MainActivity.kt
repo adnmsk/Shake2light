@@ -27,6 +27,10 @@ class MainActivity : AppCompatActivity() {
     private var isServiceRunning = false
     private var isFlashlightOn = false
 
+    companion object {
+        var isServiceRunning = false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
@@ -40,15 +44,15 @@ class MainActivity : AppCompatActivity() {
 
         cameraManager = getSystemService(CameraManager::class.java)
 
-        // Проверка наличия фонарика
+        // Check if device has flashlight
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
-            showToast("Устройство не поддерживает фонарик")
-            statusText.text = "Нет фонарика!"
+            showToast("Device doesn't support flashlight")
+            statusText.text = "No flashlight!"
             disableButtons()
             return
         }
 
-        // Проверка разрешений
+        // Check permissions
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
             != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
@@ -89,14 +93,15 @@ class MainActivity : AppCompatActivity() {
 
                 if (isFlashlightOn) {
                     flashlightIcon.setImageResource(R.drawable.ic_flashlight_on)
-                    showToast("Фонарик включен")
+                    showToast("Flashlight ON")
                 } else {
                     flashlightIcon.setImageResource(R.drawable.ic_flashlight_off)
-                    showToast("Фонарик выключен")
+                    showToast("Flashlight OFF")
                 }
             }
         } catch (e: Exception) {
-            showToast("Ошибка доступа к камере")
+            showToast("Camera access error")
+            Log.e("MainActivity", "Flashlight test error", e)
         }
     }
 
@@ -111,7 +116,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         } catch (e: Exception) {
-            Log.e("MainActivity", "Camera ID error")
+            Log.e("MainActivity", "Camera ID error", e)
         }
         return null
     }
@@ -124,28 +129,35 @@ class MainActivity : AppCompatActivity() {
             startService(serviceIntent)
         }
         isServiceRunning = true
-        showToast("Сервис запущен")
+        FlashlightService.isServiceRunning = true
+        showToast("Service started")
     }
 
     private fun stopFlashlightService() {
         val serviceIntent = Intent(this, FlashlightService::class.java)
-        stopService(serviceIntent)
+        serviceIntent.action = FlashlightService.ACTION_STOP_SERVICE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
         isServiceRunning = false
-        showToast("Сервис остановлен")
+        FlashlightService.isServiceRunning = false
+        showToast("Service stopped")
     }
 
     private fun checkServiceStatus() {
-        updateUI(isServiceRunning)
+        updateUI(FlashlightService.isServiceRunning)
     }
 
     private fun updateUI(serviceRunning: Boolean) {
         if (serviceRunning) {
-            statusText.text = "Сервис активен"
+            statusText.text = "Service active"
             startButton.isEnabled = false
             stopButton.isEnabled = true
             testButton.isEnabled = false
         } else {
-            statusText.text = "Сервис остановлен"
+            statusText.text = "Service stopped"
             startButton.isEnabled = true
             stopButton.isEnabled = false
             testButton.isEnabled = true
@@ -177,8 +189,8 @@ class MainActivity : AppCompatActivity() {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 checkServiceStatus()
             } else {
-                showToast("Разрешение на камеру необходимо")
-                statusText.text = "Нет разрешения!"
+                showToast("Camera permission required")
+                statusText.text = "No permission!"
                 disableButtons()
             }
         }

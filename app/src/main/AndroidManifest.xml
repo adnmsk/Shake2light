@@ -28,7 +28,8 @@
             android:name=".FlashlightService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="camera" />
+            android:foregroundServiceType="camera"
+            android:stopWithTask="false" />
 
     </application>
 </manifest>

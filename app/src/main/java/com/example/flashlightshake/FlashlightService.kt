@@ -3,9 +3,11 @@ package com.example.flashlightshake
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -23,6 +25,7 @@ class FlashlightService : Service(), SensorEventListener {
     private lateinit var accelerometer: Sensor
     private lateinit var cameraManager: CameraManager
     private lateinit var handler: Handler
+    private lateinit var prefs: SharedPreferences
 
     private var isFlashlightOn = false
     private var canToggle = true
@@ -31,6 +34,7 @@ class FlashlightService : Service(), SensorEventListener {
     private val DOUBLE_SHAKE_TIMEOUT = 250L
     private val MIN_SHAKE_INTERVAL = 100L
     private val TOGGLE_COOLDOWN = 500L
+    private val RESTART_DELAY = 1000L
 
     private var lastShakeTime: Long = 0
     private var firstShakeTime: Long = 0
@@ -47,15 +51,21 @@ class FlashlightService : Service(), SensorEventListener {
         private const val CHANNEL_ID = "Shake2LightChannel"
         private const val NOTIFICATION_ID = 1
         const val ACTION_STOP_SERVICE = "STOP_SERVICE"
+        const val ACTION_START_SERVICE = "START_SERVICE"
+        var isServiceRunning = false
+        var wasStoppedByApp = false
     }
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
+        isServiceRunning = true
+        wasStoppedByApp = false
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
         handler = Handler(Looper.getMainLooper())
+        prefs = getSharedPreferences("service_prefs", Context.MODE_PRIVATE)
 
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) ?: run {
             stopSelf()
@@ -64,22 +74,23 @@ class FlashlightService : Service(), SensorEventListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Service started")
+        Log.d(TAG, "Service started with action: ${intent?.action}")
 
-        // Проверяем, не пришла ли команда остановки
         if (intent?.action == ACTION_STOP_SERVICE) {
+            wasStoppedByApp = true
+            prefs.edit().putBoolean("stop_intentional", true).apply()
             stopSelf()
             return START_NOT_STICKY
         }
 
-        // Создаем канал уведомлений
-        createNotificationChannel()
+        // Reset stop flag on normal start
+        wasStoppedByApp = false
+        prefs.edit().putBoolean("stop_intentional", false).apply()
 
-        // Запускаем в foreground
+        createNotificationChannel()
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
 
-        // Регистрируем слушатель сенсора
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
 
         return START_STICKY
@@ -90,6 +101,7 @@ class FlashlightService : Service(), SensorEventListener {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "Service destroyed")
+        isServiceRunning = false
 
         sensorManager.unregisterListener(this)
         handler.removeCallbacksAndMessages(null)
@@ -97,6 +109,28 @@ class FlashlightService : Service(), SensorEventListener {
         if (isFlashlightOn) {
             toggleFlashlight()
         }
+
+        if (!isStopIntentReceived()) {
+            handler.postDelayed({
+                Log.d(TAG, "Auto-restarting service...")
+                val restartIntent = Intent(this, FlashlightService::class.java)
+                restartIntent.action = ACTION_START_SERVICE
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(restartIntent)
+                } else {
+                    startService(restartIntent)
+                }
+            }, RESTART_DELAY)
+        }
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Log.d(TAG, "Task removed from recent list, service keeps running")
+    }
+
+    private fun isStopIntentReceived(): Boolean {
+        return wasStoppedByApp || prefs.getBoolean("stop_intentional", false)
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -164,9 +198,10 @@ class FlashlightService : Service(), SensorEventListener {
             if (cameraId != null) {
                 cameraManager.setTorchMode(cameraId, !isFlashlightOn)
                 isFlashlightOn = !isFlashlightOn
+                Log.d(TAG, "Flashlight toggled: $isFlashlightOn")
             }
         } catch (e: CameraAccessException) {
-            Log.e(TAG, "Camera access error")
+            Log.e(TAG, "Camera access error", e)
         }
     }
 
@@ -181,7 +216,7 @@ class FlashlightService : Service(), SensorEventListener {
                 }
             }
         } catch (e: CameraAccessException) {
-            Log.e(TAG, "Camera ID error")
+            Log.e(TAG, "Camera ID error", e)
         }
         return null
     }
@@ -193,7 +228,8 @@ class FlashlightService : Service(), SensorEventListener {
                 "Shake2Light Service",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Фоновая служба для включения фонарика встряхиванием"
+                description = "Background service for flashlight shake control"
+                setShowBadge(false)
             }
 
             val manager = getSystemService(NotificationManager::class.java)
@@ -202,12 +238,23 @@ class FlashlightService : Service(), SensorEventListener {
     }
 
     private fun createNotification(): Notification {
+        val openAppIntent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            openAppIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Shake2Light")
-            .setContentText("Работает в фоне")
+            .setContentText("Running in background - shake to toggle")
             .setSmallIcon(R.drawable.ic_flashlight_on)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(false)
+            .setOnlyAlertOnce(true)
             .build()
     }
 }
