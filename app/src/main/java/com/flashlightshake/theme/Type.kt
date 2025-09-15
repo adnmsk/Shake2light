@@ -1,4 +1,4 @@
-package com.example.flashlightshake.ui.theme
+package com.flashlightshake.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

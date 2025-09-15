@@ -16,7 +16,7 @@
         android:theme="@style/Theme.FlashlightShake">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.flashlightshake.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -25,7 +25,7 @@
         </activity>
 
         <service
-            android:name=".FlashlightService"
+            android:name="com.flashlightshake.FlashlightService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="camera"

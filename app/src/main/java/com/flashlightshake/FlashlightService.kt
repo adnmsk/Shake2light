@@ -1,11 +1,10 @@
-package com.example.flashlightshake
+package com.flashlightshake
 
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.hardware.Sensor
@@ -18,6 +17,7 @@ import android.hardware.camera2.CameraManager
 import android.os.*
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.example.flashlightshake.R
 
 class FlashlightService : Service(), SensorEventListener {
 
@@ -62,10 +62,10 @@ class FlashlightService : Service(), SensorEventListener {
         isServiceRunning = true
         wasStoppedByApp = false
 
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        cameraManager = getSystemService(CAMERA_SERVICE) as CameraManager
         handler = Handler(Looper.getMainLooper())
-        prefs = getSharedPreferences("service_prefs", Context.MODE_PRIVATE)
+        prefs = getSharedPreferences("service_prefs", MODE_PRIVATE)
 
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) ?: run {
             stopSelf()
