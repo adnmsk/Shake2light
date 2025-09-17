@@ -1,121 +1,42 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - Shake2Light</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-        }
-        h2 {
-            color: #2980b9;
-            margin-top: 25px;
-        }
-        .last-updated {
-            text-align: right;
-            font-style: italic;
-            color: #7f8c8d;
-            margin-bottom: 30px;
-        }
-        .section {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .highlight {
-            background-color: #f1f8ff;
-            padding: 15px;
-            border-left: 4px solid #3498db;
-            margin: 15px 0;
-            border-radius: 0 4px 4px 0;
-        }
-        footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #7f8c8d;
-        }
-    </style>
-</head>
-<body>
-    <h1>Privacy Policy</h1>
-    <div class="last-updated">Last Updated: September 17, 2023</div>
+Privacy Policy for Shake2Light
 
-    <div class="section">
-        <h2>1. General Information</h2>
-        <p>The <strong>Shake2Light</strong> application ("app", "we", "our") is designed as a tool to turn your device's flashlight on and off by shaking. This privacy policy informs you about our policies regarding the collection, use, and disclosure of information when you use our application.</p>
-        
-        <div class="highlight">
-            <strong>Important:</strong> Our application does not collect, store, or transmit any personal user data. All data processing occurs locally on your device.
-        </div>
-    </div>
+Last Updated: September 17, 2025
 
-    <div class="section">
-        <h2>2. Permissions Used by the Application</h2>
-        <p>Our application requests the following permissions:</p>
-        <ul>
-            <li><strong>CAMERA Permission</strong> - Required to access the camera flash, which is used as a flashlight. We do not access the camera or any images/video.</li>
-            <li><strong>FOREGROUND_SERVICE Permission</strong> - Required for the background service operation that tracks device movements to activate the flashlight by shaking.</li>
-        </ul>
-    </div>
+1. General Information
+The Shake2Light application ("app", "we", "our") is designed as a tool to turn your device's flashlight on and off by shaking. This privacy policy informs you about our policies regarding the collection, use, and disclosure of information when you use our application.
 
-    <div class="section">
-        <h2>3. Information Collection and Use</h2>
-        <p>Our application <strong>DOES NOT COLLECT</strong> and <strong>DOES NOT TRANSMIT</strong> any data:</p>
-        <ul>
-            <li>We do not collect personal information</li>
-            <li>We do not request access to contacts, location, or media files</li>
-            <li>We do not track user activities</li>
-            <li>We do not use analytics tools or cookies</li>
-            <li>The application has no internet access and does not transmit data</li>
-        </ul>
-        
-        <p>All data processing (processing accelerometer signals to detect shaking) occurs exclusively on your device without any external transmission.</p>
-    </div>
+Important: Our application does not collect, store, or transmit any personal user data. All data processing occurs locally on your device.
 
-    <div class="section">
-        <h2>4. Device Sensors</h2>
-        <p>The application uses the following sensors on your device:</p>
-        <ul>
-            <li><strong>Accelerometer</strong> - To detect the shaking gesture</li>
-            <li><strong>Proximity sensor</strong> (if available) - To determine if the device is in a pocket to prevent accidental activation</li>
-        </ul>
-        <p>Data from these sensors is processed exclusively locally and immediately removed from memory after processing.</p>
-    </div>
+2. Permissions Used by the Application
+Our application requests the following permissions:
 
-    <div class="section">
-        <h2>5. Security</h2>
-        <p>We value your trust in our application. Since we do not collect or store any data, issues related to data leakage or misuse are excluded.</p>
-    </div>
+CAMERA Permission - Required to access the camera flash, which is used as a flashlight. We do not access the camera or any images/video.
 
-    <div class="section">
-        <h2>6. Changes to This Privacy Policy</h2>
-        <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.</p>
-    </div>
+FOREGROUND_SERVICE Permission - Required for the background service operation that tracks device movements to activate the flashlight by shaking.
 
-    <div class="section">
-        <h2>7. Contact Us</h2>
-        <p>If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us at: <strong>shake2light.support@example.com</strong></p>
-    </div>
+3. Information Collection and Use
+Our application DOES NOT COLLECT and DOES NOT TRANSMIT any data:
 
-    <footer>
-        <p>Shake2Light &copy; 2023. All rights reserved.</p>
-    </footer>
-</body>
-</html>
+We do not collect personal information
+
+We do not request access to contacts, location, or media files
+
+We do not track user activities
+
+We do not use analytics tools or cookies
+
+The application has no internet access and does not transmit data
+
+All data processing (processing accelerometer signals to detect shaking) occurs exclusively on your device without any external transmission.
+
+4. Device Sensors
+The application uses the following sensors on your device:
+
+Accelerometer - To detect the shaking gesture
+
+Proximity sensor (if available) - To determine if the device is in a pocket to prevent accidental activation
+
+Data from these sensors is processed exclusively locally and immediately removed from memory after processing.
+
+5. Changes to This Privacy Policy
+We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.
