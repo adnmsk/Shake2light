@@ -1,4 +1,4 @@
-package com.flashlightshake
+package com.shake2light
 
 import org.junit.Assert
 import org.junit.Test

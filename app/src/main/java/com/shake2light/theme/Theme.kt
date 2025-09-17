@@ -1,4 +1,4 @@
-package com.flashlightshake.theme
+package com.shake2light.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

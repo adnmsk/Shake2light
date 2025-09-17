@@ -5,15 +5,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.flashlightshake"
+    namespace = "com.shake2light"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.flashlightshake"
+        applicationId = "com.shake2light"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

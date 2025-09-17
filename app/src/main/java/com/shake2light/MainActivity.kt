@@ -1,4 +1,4 @@
-package com.flashlightshake
+package com.shake2light
 
 import android.Manifest
 import android.content.Intent
