@@ -1,11 +1,10 @@
-package com.example.flashlightshake
+package com.shake2light
 
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.hardware.Sensor
@@ -18,17 +17,20 @@ import android.hardware.camera2.CameraManager
 import android.os.*
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.shake2light.R
 
 class FlashlightService : Service(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private lateinit var accelerometer: Sensor
+    private var proximitySensor: Sensor? = null
     private lateinit var cameraManager: CameraManager
     private lateinit var handler: Handler
     private lateinit var prefs: SharedPreferences
 
     private var isFlashlightOn = false
     private var canToggle = true
+    private var isInPocket = false
 
     private val SHAKE_THRESHOLD = 10000f
     private val DOUBLE_SHAKE_TIMEOUT = 250L
@@ -62,14 +64,22 @@ class FlashlightService : Service(), SensorEventListener {
         isServiceRunning = true
         wasStoppedByApp = false
 
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        cameraManager = getSystemService(CAMERA_SERVICE) as CameraManager
         handler = Handler(Looper.getMainLooper())
-        prefs = getSharedPreferences("service_prefs", Context.MODE_PRIVATE)
+        prefs = getSharedPreferences("service_prefs", MODE_PRIVATE)
 
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) ?: run {
             stopSelf()
             return
+        }
+
+        // Инициализируем датчик приближения (может быть null)
+        proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+        if (proximitySensor == null) {
+            Log.w(TAG, "Proximity sensor not available")
+        } else {
+            Log.d(TAG, "Proximity sensor available")
         }
     }
 
@@ -92,6 +102,11 @@ class FlashlightService : Service(), SensorEventListener {
         startForeground(NOTIFICATION_ID, notification)
 
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
+
+        // Регистрируем датчик приближения, если он есть
+        proximitySensor?.let { sensor ->
+            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        }
 
         return START_STICKY
     }
@@ -135,8 +150,19 @@ class FlashlightService : Service(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
-            if (it.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-                detectDoubleShake(it)
+            when (it.sensor.type) {
+                Sensor.TYPE_ACCELEROMETER -> {
+                    if (!isInPocket) { // Только если не в кармане
+                        detectDoubleShake(it)
+                    }
+                }
+                Sensor.TYPE_PROXIMITY -> {
+                    // Определяем, находится ли телефон в кармане
+                    proximitySensor?.let { sensor ->
+                        isInPocket = it.values[0] < sensor.maximumRange
+                        Log.d(TAG, "Proximity: ${it.values[0]}, In pocket: $isInPocket")
+                    }
+                }
             }
         }
     }

@@ -1,6 +1,5 @@
-package com.example.flashlightshake.ui.theme
+package com.shake2light.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

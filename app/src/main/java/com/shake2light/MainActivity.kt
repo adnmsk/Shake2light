@@ -1,5 +1,6 @@
-package com.example.flashlightshake
+package com.shake2light
 
+import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
@@ -14,6 +15,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.shake2light.R
 
 class MainActivity : AppCompatActivity() {
 
@@ -53,10 +55,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Check permissions
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
-                arrayOf(android.Manifest.permission.CAMERA), 1)
+                arrayOf(Manifest.permission.CAMERA), 1)
         } else {
             checkServiceStatus()
         }
@@ -171,7 +173,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) ==
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
                 PackageManager.PERMISSION_GRANTED
     }
 
