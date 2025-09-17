@@ -17,7 +17,7 @@ import android.hardware.camera2.CameraManager
 import android.os.*
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.example.flashlightshake.R
+import com.shake2light.R
 
 class FlashlightService : Service(), SensorEventListener {
 
